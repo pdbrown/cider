@@ -626,21 +626,13 @@ If NO-ERROR is non-nil, show messages instead of throwing an error."
 
 ;;; Client: Process Handling
 
-(defun nrepl--kill-process (proc)
-  "Kill PROC using the appropriate, os specific way.
-Implement a workaround to clean up an orphaned JVM process left around
-after exiting the REPL on some windows machines."
-  (if (memq system-type '(cygwin windows-nt))
-      (interrupt-process proc)
-    (kill-process proc)))
-
 (defun nrepl-kill-server-buffer (server-buf)
   "Kill SERVER-BUF and its process."
   (when (buffer-live-p server-buf)
     (let ((proc (get-buffer-process server-buf)))
       (when (process-live-p proc)
         (set-process-query-on-exit-flag proc nil)
-        (nrepl--kill-process proc))
+        (signal-process proc 'sigterm))
       (kill-buffer server-buf))))
 
 (defun nrepl--maybe-kill-server-buffer (server-buf)
@@ -1155,7 +1147,8 @@ match groups:
     (when server-buffer
       (kill-buffer server-buffer))
     (cond
-     ((string-match-p "^killed\\|^interrupt" event)
+     ;; SIGTERM on Linux sends "exited abnormally with code 15"
+     ((string-match-p "^killed\\|^interrupt\\|code 15" event)
       nil)
      ((string-match-p "^hangup" event)
       (mapc #'cider--close-connection clients))

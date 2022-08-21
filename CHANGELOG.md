@@ -21,6 +21,7 @@
 - Support Gradle jack-in via the Gradle wrapper (`gradlew`), instead of just a globally installed `gradle` on the `PATH`.
 - Gradle projects can now inject dependencies and middleware as with other build tools (dependency injection requires [Clojurephant](https://github.com/clojurephant/clojurephant) 0.7.0 or higher).
 - [#3239](https://github.com/clojure-emacs/cider/issues/3239): Added commands to evaluate and tap last sexp (`cider-tap-last-sexp`) and sexp at point (`cider-tap-sexp-at-point`).
+- Kill nREPL server process with SIGTERM instead of SIGINT or SIGKILL.
 
 ## Changes
 

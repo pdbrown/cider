@@ -181,11 +181,11 @@
               ;; exit client
               (delete-process process-client)
 
-              ;; server process has been signalled
+              ;; server process has been terminated
               (nrepl-tests-sleep-until 4 (eq (process-status server-process)
-                                             'signal))
+                                             'exit))
               (expect (process-status server-process)
-                      :to-equal 'signal))
+                      :to-equal 'exit))
           (error
            ;; there may be some useful information in the nrepl buffer on error
            (when-let ((nrepl-error-buffer (get-buffer "*nrepl-error*")))
