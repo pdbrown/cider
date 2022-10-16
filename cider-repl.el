@@ -220,10 +220,11 @@ This cache is stored in the connection buffer.")
   "Handle server state contained in RESPONSE."
   (with-demoted-errors "Error in `cider-repl--state-handler': %s"
     (when (member "state" (nrepl-dict-get response "status"))
-      (nrepl-dbind-response response (repl-type changed-namespaces)
+      (nrepl-dbind-response response (id repl-type changed-namespaces)
         (when (and repl-type cider-repl-auto-detect-type)
           (cider-set-repl-type repl-type))
         (unless (nrepl-dict-empty-p changed-namespaces)
+          ;; (message "handle changed nses in response id %s" id)
           (setq cider-repl-ns-cache (nrepl-dict-merge cider-repl-ns-cache changed-namespaces))
           (dolist (b (buffer-list))
             (with-current-buffer b
@@ -235,7 +236,10 @@ This cache is stored in the connection buffer.")
                                            (when (seq-find (lambda (ns) (nrepl-dict-get changed-namespaces ns))
                                                            (nrepl-dict-get ns-dict "aliases"))
                                              ns-dict)))))
-                  (cider-refresh-dynamic-font-lock ns-dict))))))))))
+                  ;; (message "Refresh ns %s %s" (current-time-string) (cider-current-ns))
+                  (cider-refresh-dynamic-font-lock ns-dict)
+                  ;; (message "Done Refresh ns %s %s" (current-time-string) (cider-current-ns))
+                  )))))))))
 
 (defun cider-repl-require-repl-utils ()
   "Require standard REPL util functions into the current REPL."
