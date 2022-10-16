@@ -1127,10 +1127,10 @@ match groups:
                                 (eq (buffer-local-value 'nrepl-server-buffer b)
                                     server-buffer))
                               (buffer-list)))
-         (problem (if (and server-buffer (buffer-live-p server-buffer))
-                      (with-current-buffer server-buffer
-                        (buffer-substring (point-min) (point-max)))
-                    "")))
+         (server-output (if (and server-buffer (buffer-live-p server-buffer))
+                            (with-current-buffer server-buffer
+                              (buffer-substring (point-min) (point-max)))
+                          "")))
     (emacs-bug-46284/when-27.1-windows-nt
      ;; There is a bug in emacs 27.1 (since fixed) that sets all EVENT
      ;; descriptions for signals to "unknown signal". We correct this by
@@ -1146,16 +1146,35 @@ match groups:
 
     (when server-buffer
       (kill-buffer server-buffer))
-    (cond
-     ;; SIGTERM on Linux sends "exited abnormally with code 15"
-     ((string-match-p "^killed\\|^interrupt\\|code 15" event)
-      nil)
-     ((string-match-p "^hangup" event)
-      (mapc #'cider--close-connection clients))
-     ;; On Windows, a failed start sends the "finished" event. On Linux it sends
-     ;; "exited abnormally with code 1".
-     (t (error "Could not start nREPL server: %s" problem)))))
 
+    ;; The JVM exits with status code 128 + signal number:
+    ;; - SIGHUP  (1): 129
+    ;; - SIGINT  (2): 130
+    ;; - SIGTERM (15): 143
+    ;; - The unit test mock nrepl-server (not a JVM) exits with code 15.
+    (cond
+     ;; Non-zero exit status for JVM SIGTERM, unit test SIGTERM
+     ((string-match-p "^exited abnormally with code \\(143\\|15\\)" event)
+      nil)
+     ;; Signal description or non-zero exit status for JVM SIGHUP. Happens
+     ;; when server buffer is killed while process is running.
+     ((string-match-p "^hangup\\|^exited abnormally with code 129" event)
+      (mapc #'cider--close-connection clients))
+     ;; Other signal descriptions, for SIGKILL or SIGINT
+     ((string-match-p "^killed\\|^interrupt" event)
+      nil)
+     ;; Else unexpected event:
+     (t (error "nREPL server status changed to: `%s', server output was: `%s'"
+               event
+               server-output)))))
+
+(save-match-data
+  (let ((str "exited abnormally with code 143 (core)"))
+    (string-match
+     "code \\([0-9]+\\)" str)
+    (match-string 1 str)))
+(match-data)
+(match-end 0)
 
 ;;; Messages
 
